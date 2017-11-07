@@ -1,20 +1,16 @@
 package transaction.user.consumer;
 
 import cache.Cache;
-import domain.User;
-import org.neo4j.ogm.drivers.http.request.HttpRequestException;
-import org.neo4j.ogm.json.JSONArray;
-import org.neo4j.ogm.json.JSONException;
-import org.neo4j.ogm.json.JSONObject;
+import sample.data.neo4j.UserNode;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
-import repository.neo4j.UserRepository;
+import repository.neo4j.UserNodeRepository;
 import transaction.user.producer.TransactionUserProducer;
-
-import java.util.HashMap;
 
 @Component
 public class TransactionUserConsumer {
@@ -22,7 +18,7 @@ public class TransactionUserConsumer {
     private static final Logger LOGGER = LoggerFactory.getLogger(TransactionUserConsumer.class);
 
     @Autowired
-    private UserRepository userRepository;
+    private UserNodeRepository userNodeRepository;
 
     @Autowired
     private TransactionUserProducer transactionUserProducer;
@@ -34,16 +30,14 @@ public class TransactionUserConsumer {
         LOGGER.info("Received User Transaction '{}'", sysTime);
         Long TwitterID = Long.parseLong(userInfoJson.split(":")[0]);
         try {
-            User user = Cache.getUser(TwitterID);
-            if (user == null){
-                user = userRepository.findByTwitterId(TwitterID);
-                if (user == null) {
+            UserNode userNode = Cache.getUser(TwitterID);
+            if (userNode == null){
+                userNode = userNodeRepository.findByTwitterId(TwitterID);
+                if (userNode == null) {
                     LOGGER.debug("'{}' not found --> CREATE", TwitterID);
-                    user = new User(TwitterID);
-                    this.userRepository.save(user);
-                    user = this.userRepository.findByTwitterId(TwitterID);
+                    userNode = new UserNode(TwitterID);
                 }
-                Cache.addUser(user);
+                Cache.addUser(userNode);
             }
 
             String userJson = userInfoJson.substring(userInfoJson.indexOf(':')+1);
@@ -70,21 +64,29 @@ public class TransactionUserConsumer {
                 name = userJsonObj.getString("NAME");
             } catch (JSONException je){}
 
-            String email = "";
-            try{
-                email = userJsonObj.getString("EMAIL");
-            } catch (JSONException je){}
+            if (!url.isEmpty()){
+                userNode.setUrl(url);
+            }
+            if (!location.isEmpty()) {
+                userNode.setLocation(location);
+            }
+            if (!screenname.isEmpty()) {
+                userNode.setNickname(screenname);
+            }
+            if (!name.isEmpty()) {
+                userNode.setName(name);
+            }
 
-            user.setUrl(url);
-            user.setLocation(location);
-            user.setNickname(screenname);
-            user.setName(name);
-            user.setEmail(email);
-            userRepository.save(user);
+            userNodeRepository.save(userNode);
             transactionUserProducer.send(TwitterID+",OK");
             return;
-        } catch (JSONException e) {
-            LOGGER.error("JSON Error");
+        } catch (JSONException je) {
+            LOGGER.error("JSON Error for transaction time {} and input {} ", sysTime, userInfoJson);
+            LOGGER.error(je.getMessage(), je);
+            je.printStackTrace();
+        } catch (Exception e){
+            LOGGER.error("Exception executing user transaction consumer with input '{}'", userInfoJson);
+            LOGGER.error(e.getMessage(), e);
             e.printStackTrace();
         }
         transactionUserProducer.send(TwitterID+",KO");

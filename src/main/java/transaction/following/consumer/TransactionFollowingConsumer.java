@@ -1,25 +1,26 @@
 package transaction.following.consumer;
 
 import cache.Cache;
-import domain.User;
-import org.neo4j.ogm.drivers.http.request.HttpRequestException;
+import sample.data.neo4j.UserNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
-import repository.neo4j.UserRepository;
+import repository.neo4j.UserNodeRepository;
 import transaction.following.producer.TransactionFollowingProducer;
 
 import java.util.HashMap;
+import java.util.HashSet;
 
 @Component
 public class TransactionFollowingConsumer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TransactionFollowingConsumer.class);
 
+    private static final int THRESHOLD = 10000;
     @Autowired
-    private UserRepository userRepository;
+    private UserNodeRepository userNodeRepository;
 
     @Autowired
     private TransactionFollowingProducer transactionFollowingProducer;
@@ -30,76 +31,80 @@ public class TransactionFollowingConsumer {
         long sysTime = System.currentTimeMillis();
         LOGGER.info("Received Following Transaction '{}'", sysTime);
 
-        User currentUser = null;
-        boolean currentNode = true;
+        UserNode startUserNode = null;
+        boolean isStartNode = true;
         long TwitterId;
         int addedFollowing = 0;
-        int threshold = 10000;
-        HashMap<Long, User> followingMaps = new HashMap<Long, User>();
+        HashMap<Long, UserNode> followingMaps = new HashMap<Long, UserNode>();
 
         String[] followingArray = following.split(",");
         LOGGER.info("Transaction '{}' with '{}' elements", sysTime, followingArray.length-1);
         try {
             for (String TwitterIdStr : followingArray) {
                 TwitterId = Long.parseLong(TwitterIdStr);
-                if (currentNode) {
+                if (isStartNode) {
                     // This is the current node
-                    LOGGER.debug("'{}' is the current node", TwitterId);
+                    LOGGER.debug("'{}' is the start node", TwitterId);
 
                     // Check number of following is less that threshold
-                    if (followingArray.length > threshold){
+                    if (followingArray.length > THRESHOLD){
                         transactionFollowingProducer.send("" + TwitterId+",KO");
                         return;
                     }
 
-                    currentUser = userRepository.findByTwitterId(TwitterId);
-                    if (currentUser == null) {
+                    startUserNode = userNodeRepository.findByTwitterId(TwitterId);
+                    if (startUserNode == null) {
                         // Get information of the user --> insert into the DB
                         LOGGER.debug("'{}' not found --> CREATE", TwitterId);
-                        currentUser = new User(TwitterId);
-                        this.userRepository.save(currentUser);
-                        currentUser = this.userRepository.findByTwitterId(TwitterId);
-                    } else if (currentUser.follows != null){
-                        for (User followingUser : currentUser.follows) {
+                        startUserNode = new UserNode(TwitterId);
+                        startUserNode.follows = new HashSet<>();
+                    } else if (startUserNode.follows != null){
+                        for (UserNode followingUserNode : startUserNode.follows) {
                             LOGGER.debug("'{}' found --> mapping already following", TwitterId);
-                            followingMaps.put(followingUser.getId(), followingUser);
+                            followingMaps.put(followingUserNode.getTwitterId(), followingUserNode);
                         }
+                    } else{
+                        startUserNode.follows = new HashSet<>();
                     }
-                    currentNode = false;
+                    isStartNode = false;
                 } else {
                     // This is one of the following of the current node
                     if (followingMaps.get(TwitterId) != null) {
-                        LOGGER.debug("'{}' already follow '{}' --> SKIP IT", currentUser, TwitterId);
+                        LOGGER.debug("'{}' already follow '{}' --> SKIP IT", startUserNode, TwitterId);
                         continue;
                     }
 
-                    User userFollowed = Cache.getUser(TwitterId);
-                    if (userFollowed == null){
-                        userFollowed = userRepository.findByTwitterId(TwitterId);
-                        if (userFollowed == null) {
+                    UserNode followedUserNode = Cache.getUser(TwitterId);
+                    if (followedUserNode == null){
+                        followedUserNode = userNodeRepository.findByTwitterId(TwitterId);
+                        if (followedUserNode == null) {
                             LOGGER.debug("'{}' not found --> CREATE", TwitterId);
-                            userFollowed = new domain.User(
+                            followedUserNode = new UserNode(
                                     TwitterId);
-                            this.userRepository.save(userFollowed);
-                            userFollowed = this.userRepository.findByTwitterId(TwitterId);
+                            this.userNodeRepository.save(followedUserNode);
                         }
-                        Cache.addUser(userFollowed);
+                        Cache.addUser(followedUserNode);
                     }
-                    LOGGER.debug("'{}' has following '{}'", TwitterId, userFollowed);
-                    currentUser.follow(userFollowed);
+                    LOGGER.debug("'{}' has following '{}'", TwitterId, followedUserNode);
+                    //startUserNode.follow(followedUserNode);
+                    startUserNode.follows.add(followedUserNode);
 
                     addedFollowing++;
                     if (addedFollowing % 1000 == 0){
-                        LOGGER.debug("Save intermediate result for user '{}'", currentUser);
-                        this.userRepository.save(currentUser);
+                        LOGGER.debug("Save intermediate result for user '{}'", startUserNode);
+                        this.userNodeRepository.save(startUserNode);
                     }
                 }
-
             }
-            this.userRepository.save(currentUser);
-            transactionFollowingProducer.send("" + currentUser.getTwitterId()+",OK");
-        } catch (HttpRequestException hre){
-            LOGGER.error("Error caused by connection, transaction '{}'", sysTime);
+            this.userNodeRepository.save(startUserNode);
+            transactionFollowingProducer.send("" + startUserNode.getTwitterId()+",OK");
+            return;
+        } catch (Exception e){
+            LOGGER.error("Error during transaction following consumer with input '{}'", following);
+            LOGGER.error(e.getMessage(), e);
+            e.printStackTrace();
         }
+
+        transactionFollowingProducer.send("" + startUserNode.getTwitterId()+",KO");
     }
 }

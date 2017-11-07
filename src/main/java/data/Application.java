@@ -11,18 +11,19 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.neo4j.repository.config.EnableNeo4jRepositories;
-import repository.neo4j.UserRepository;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
+import repository.neo4j.UserNodeRepository;
 
 import java.util.Arrays;
-
 
 /**
  * Created by simonecaldaro on 11/09/2017.
  */
 @SpringBootApplication
-@ComponentScan({"controller", "data", "repository", "transaction"})
-@EntityScan("domain")
-@EnableNeo4jRepositories("repository.neo4j")
+@ComponentScan({"data", "repository", "transaction"})
+@EntityScan({ "sample.data.neo4j", "BOOT-INF.classes.sample.data.neo4j" })
+@EnableNeo4jRepositories(basePackages = "repository.neo4j")
+@EnableTransactionManagement
 public class Application {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Application.class);
@@ -31,8 +32,6 @@ public class Application {
         SpringApplication.run(Application.class, args);
     }
 
-    @Autowired
-    private UserRepository userRepository;
 
     @Bean
     public CommandLineRunner commandLineRunner(ApplicationContext ctx) {
@@ -43,8 +42,6 @@ public class Application {
             for (String beanName : beanNames) {
                 System.out.println(beanName);
             }
-        
         };
-
     }
 }

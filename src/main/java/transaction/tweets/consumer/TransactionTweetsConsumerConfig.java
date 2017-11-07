@@ -1,4 +1,4 @@
-package transaction.user.consumer;
+package transaction.tweets.consumer;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -17,7 +17,7 @@ import java.util.Map;
 
 @Configuration
 @EnableKafka
-public class TransactionUserConsumerConfig {
+public class TransactionTweetsConsumerConfig {
 
     @Value("${kafka.bootstrap-servers}")
     private String bootstrapServers;
@@ -30,7 +30,7 @@ public class TransactionUserConsumerConfig {
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         // allows a pool of processes to divide the work of consuming and processing records
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, "usertransactionagroup");
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, "tweetstransactionagroup");
 
         return props;
     }
@@ -50,7 +50,7 @@ public class TransactionUserConsumerConfig {
     }
 
     @Bean
-    public TransactionUserConsumer receiver() {
-        return new TransactionUserConsumer();
+    public TransactionTweetsConsumer receiver() {
+        return new TransactionTweetsConsumer();
     }
 }

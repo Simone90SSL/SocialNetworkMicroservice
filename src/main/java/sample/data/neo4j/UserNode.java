@@ -1,34 +1,38 @@
-package domain;
+package sample.data.neo4j;
 
 import org.neo4j.ogm.annotation.GraphId;
+import org.neo4j.ogm.annotation.Index;
 import org.neo4j.ogm.annotation.NodeEntity;
 import org.neo4j.ogm.annotation.Relationship;
 
-import java.util.Date;
-import java.util.HashSet;
 import java.util.Set;
 
 @NodeEntity
-public class User {
+public class UserNode {
 
     @GraphId
-    private Long id;
+    Long id;
 
+
+    @Index(unique=true)
     private long twitterId;
+
     private String name;
     private String nickname;
     private String location;
     private String url;
-    private String email;
 
     @Relationship(type = "FOLLOW")
-    public Set<User> follows;
+    public Set<UserNode> follows;
 
-    private User() {
+    @Relationship(type = "TWEETS")
+    public Set<TweetNode> tweets;
+
+    private UserNode() {
         // Empty constructor required as of Neo4j API 2.0.5
     };
 
-    public User(long twitterId, String name, String nickname, String location, String url) {
+    public UserNode(long twitterId, String name, String nickname, String location, String url) {
         this.twitterId = twitterId;
         this.name = name;
         this.nickname = nickname;
@@ -36,16 +40,8 @@ public class User {
         this.url = url;
     }
 
-    public User(long twitterId) {
-        this.twitterId = twitterId;
-        this.name = "";
-        this.nickname = "";
-        this.location = "";
-        this.url = "";
-    }
-
-    public Long getId(){
-        return id;
+    public UserNode(long twitterId) {
+        this(twitterId, "", "", "", "");
     }
 
     public long getTwitterId() {
@@ -68,12 +64,13 @@ public class User {
         return url;
     }
 
-    public String getEmail() {
-        return email;
+
+    public Set<UserNode> getFollows() {
+        return follows;
     }
 
-    public Set<User> getFollowing() {
-        return follows;
+    public Set<TweetNode> getTweets() {
+        return tweets;
     }
 
     public void setTwitterId(long twitterId) {
@@ -96,31 +93,62 @@ public class User {
         this.url = url;
     }
 
-    public void setId(Long id){
-        this.id = id;
-    }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public void follow(User user) {
+    /*public void follow(UserNode userNode) {
         if (follows == null) {
             follows = new HashSet<>();
         }
-        follows.add(user);
-    }
+        follows.add(userNode);
+    }*/
+
+    /*public void tweets(TweetNode tweetNode) {
+        if (tweets == null) {
+            tweets = new HashSet<>();
+        }
+        tweets.add(tweetNode);
+    }*/
 
     @Override
     public String toString() {
-        return "User{" +
-                "twitterId=" + twitterId +
+        return "UserNode{" +
+                "id=" + id +
+                ", twitterId=" + twitterId +
                 ", name='" + name + '\'' +
                 ", nickname='" + nickname + '\'' +
                 ", location='" + location + '\'' +
                 ", url='" + url + '\'' +
-                ", email='" + email + '\'' +
                 '}';
     }
 
+    @Override
+    public boolean equals(Object o){
+        if (o!=null && o.getClass().equals(this.getClass())){
+            UserNode un = (UserNode)o;
+            return un.twitterId == this.twitterId;
+        } else{
+            return false;
+        }
+    }
+
+    @Override
+    public int hashCode(){
+        return Long.hashCode(this.twitterId);
+    }
+
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public void setFollows(Set<UserNode> follows) {
+        this.follows = follows;
+    }
+
+    public void setTweets(Set<TweetNode> tweets) {
+        this.tweets = tweets;
+    }
 }
