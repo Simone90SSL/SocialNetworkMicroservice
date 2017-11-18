@@ -13,10 +13,8 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 import org.springframework.data.neo4j.repository.config.EnableNeo4jRepositories;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
-import repository.mongodb.TweetDocumentRepository;
+import repository.neo4j.HashTagNodeRepository;
 import repository.neo4j.UserNodeRepository;
-import sample.data.mongodb.TweetDocument;
-import transaction.TransactionConsumer;
 
 import java.util.Arrays;
 
@@ -36,6 +34,11 @@ public class Application {
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
     }
+
+    @Autowired
+    private UserNodeRepository userNodeRepository;
+    @Autowired
+    private HashTagNodeRepository hashTagNodeRepository;
 
     @Bean
     public CommandLineRunner commandLineRunner(ApplicationContext ctx) {

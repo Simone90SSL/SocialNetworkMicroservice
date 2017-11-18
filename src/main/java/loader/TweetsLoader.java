@@ -1,25 +1,37 @@
 package loader;
 
+import cache.Cache;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import repository.mongodb.TweetDocumentRepository;
+import repository.neo4j.HashTagNodeRepository;
 import repository.neo4j.UserNodeRepository;
 import sample.data.mongodb.TweetDocument;
+import sample.data.neo4j.HashTagNode;
+import sample.data.neo4j.TagsRelation;
 import sample.data.neo4j.UserNode;
 import transaction.TransactionProducer;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class TweetsLoader extends Loader{
 
     private TweetDocumentRepository tweetDocumentRepository;
+    private HashTagNodeRepository hashTagNodeRepository;
 
     public TweetsLoader(TweetDocumentRepository tweetDocumentRepository,
+                        HashTagNodeRepository hashTagNodeRepository,
                         UserNodeRepository userNodeRepository,
                         UserNode userNode) {
         super(userNodeRepository, userNode);
         this.tweetDocumentRepository = tweetDocumentRepository;
+        this.hashTagNodeRepository = hashTagNodeRepository;
     }
 
     @Override
@@ -27,7 +39,7 @@ public class TweetsLoader extends Loader{
 
         if (dataToLoad.isEmpty() || "[]".equals(dataToLoad)){
             // Empty array
-            loadStatus = LOAD_STATUS.LOAD_OK;
+            loadStatus = LOAD_STATUS.OK;
             return;
         }
 
@@ -36,11 +48,8 @@ public class TweetsLoader extends Loader{
         JSONObject tweetJsonObj;
 
         TweetDocument tweetDocument;
-        String text;
-        String createdAt;
-        String geoLocation;
+        String text, createdAt, geoLocation, lang;
         long tweetTwitterId;
-        String lang;
         for(int i=0; i<tweetArrayJson.length(); i++){
             tweetJsonObj = tweetArrayJson.getJSONObject(i);
             tweetTwitterId = Long.parseLong(getStringValueFromJsonOject(tweetJsonObj, "ID"));
@@ -56,10 +65,44 @@ public class TweetsLoader extends Loader{
 
             tweetDocument = new TweetDocument(tweetTwitterId, text, createdAt, geoLocation, lang);
             tweetDocumentList.add(tweetDocument);
+
+            Set<String> tags = getHashTagFromTweet(text);
+            int tagIndexOf;
+            HashTagNode hashTagNode;
+            for (String tag: tags){
+                hashTagNode =
+                        Optional
+                        .ofNullable(Cache.getHashTag(tag))
+                        .orElse(
+                                Optional
+                                        .ofNullable(hashTagNodeRepository.findByHashTag(tag))
+                                        .orElseGet(
+                                                () -> {
+                                                    HashTagNode h = new HashTagNode(tag);
+                                                    hashTagNodeRepository.save(h);
+                                                    return h;
+                                                })
+                        );
+                tagIndexOf = userNode.tagsRelations.indexOf(new TagsRelation(1, userNode, hashTagNode));
+                if (tagIndexOf == -1)
+                    userNode.tagsRelations.add(new TagsRelation(1, userNode, hashTagNode));
+                else{
+                    userNode.tagsRelations.get(tagIndexOf).incrementCount();
+                }
+            }
         }
         tweetDocumentRepository.save(tweetDocumentList);
         userNodeRepository.save(userNode);
-        loadStatus = LOAD_STATUS.LOAD_OK;
+        loadStatus = LOAD_STATUS.OK;
+    }
+
+    private static Set<String> getHashTagFromTweet(String text) {
+        Set<String> tags = new HashSet<>();
+        Matcher matcher = Pattern.compile("#(\\w+)").matcher(text);
+        while (matcher.find()) {
+            tags.add(matcher.group(1));
+        }
+        return tags;
     }
 
     @Override

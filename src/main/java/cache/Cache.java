@@ -1,6 +1,7 @@
 package cache;
 
 import sample.data.mongodb.TweetDocument;
+import sample.data.neo4j.HashTagNode;
 import sample.data.neo4j.UserNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,9 +17,11 @@ public class Cache {
 
     private static HashMap<Long, UserNode> userCache = new HashMap<>();
     private static HashMap<Long, TweetDocument> tweetCache = new HashMap<>();
+    private static HashMap<String, HashTagNode> hashTagCache = new HashMap<>();
 
     private static ArrayList<Long> userCacheFifo = new ArrayList<>();
     private static ArrayList<Long> tweetCacheFifo = new ArrayList<>();
+    private static ArrayList<String> hashTagCacheFifo = new ArrayList<>();
 
     public synchronized static void addUser(UserNode userNode){
         if (userCache.containsKey(userNode.getTwitterId())){
@@ -38,7 +41,28 @@ public class Cache {
         return userCache.get(twitterId);
     }
 
+    public synchronized static void addHashTag(HashTagNode hashTagNode){
+        if (hashTagCache.containsKey(hashTagNode.getHashTag())){
+            return;
+        }
+        LOGGER.debug("Add hash-tag to the cache '{}'", hashTagNode);
+        hashTagCache.put(hashTagNode.getHashTag(), hashTagNode);
+        hashTagCacheFifo.add(hashTagNode.getHashTag());
+
+        if (hashTagCacheFifo.size() >= MAX_NUMBER_ENTRIES){
+            hashTagCache.remove(hashTagCacheFifo.remove(0));
+        }
+    }
+
+    public synchronized static HashTagNode getHashTag(String hashTag){
+        LOGGER.debug("Getting hash-tag from the cache with twitter id '{}'", hashTag);
+        return hashTagCache.get(hashTag);
+    }
+
     public synchronized static void addTweet(TweetDocument tweetDocument){
+        if (tweetCache.containsKey(tweetDocument.getTwitterId())){
+            return;
+        }
         LOGGER.debug("Ass user to the cache '{}'", tweetDocument);
         tweetCache.put(tweetDocument.getTwitterId(), tweetDocument);
         tweetCacheFifo.add(tweetDocument.getTwitterId());

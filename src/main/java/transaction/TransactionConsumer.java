@@ -9,9 +9,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import repository.mongodb.TweetDocumentRepository;
+import repository.neo4j.HashTagNodeRepository;
 import repository.neo4j.UserNodeRepository;
 import sample.data.neo4j.UserNode;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Optional;
 
@@ -25,6 +27,8 @@ public class TransactionConsumer {
     private UserNodeRepository userNodeRepository;
     @Autowired
     private TweetDocumentRepository tweetDocumentRepository;
+    @Autowired
+    private HashTagNodeRepository hashTagNodeRepository;
     @Autowired
     private TransactionProducer transactionProducer;
 
@@ -53,7 +57,7 @@ public class TransactionConsumer {
         UserNode userNode = getUserNodeFromTransactionInput(inputTransaction);
         String dataToLoad = getDataFromTransactionInput(inputTransaction);
 
-        Loader loader = Loader.getNewInstance(loadType, tweetDocumentRepository, userNodeRepository, userNode);
+        Loader loader = Loader.getNewInstance(loadType, tweetDocumentRepository, hashTagNodeRepository, userNodeRepository, userNode);
         try {
             LOGGER.info("Start Loading");
             loader.startLoad(dataToLoad);
@@ -67,7 +71,7 @@ public class TransactionConsumer {
             LOGGER.error("EXCEPTION DURING '{}' LOADING", loadType);
             LOGGER.error(e.getMessage(), e);
             e.printStackTrace();
-            loader.setLoadStatus(Loader.LOAD_STATUS.LOAD_KO);
+            loader.setLoadStatus(Loader.LOAD_STATUS.KO);
         }
         LOGGER.info("Send transaction result");
         loader.sendTransactionResult(transactionProducer);
@@ -83,16 +87,22 @@ public class TransactionConsumer {
 
         UserNode userNode = Optional
                 .ofNullable(Cache.getUser(twitterId))
-                .orElse(userNodeRepository.findByTwitterId(twitterId));
+                .orElse(Optional
+                        .ofNullable(userNodeRepository.findByTwitterId(twitterId))
+                        .orElseGet(() ->
+                        {
+                            LOGGER.debug("'{}' not found --> CREATE", twitterId);
+                            UserNode u = new UserNode(twitterId);
+                            userNodeRepository.save(u);
+                            return u;
+                        })
+                );
 
-        if (userNode == null) {
-            // Get information of the user --> insert into the DB
-            LOGGER.debug("'{}' not found --> CREATE", twitterId);
-            userNode = new UserNode(twitterId);
-            userNodeRepository.save(userNode);
-        }
         if (userNode.follows == null){
             userNode.follows = new HashSet<>();
+        }
+        if (userNode.tagsRelations == null){
+            userNode.tagsRelations = new ArrayList<>();
         }
         Cache.addUser(userNode);
 

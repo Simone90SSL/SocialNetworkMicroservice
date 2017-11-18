@@ -26,7 +26,7 @@ public class FollowingLoader extends Loader{
         // Check number of following is less than threshold
         String[] inputFollowingArray = dataToLoad.split(",");
         if (inputFollowingArray.length > THRESHOLD){
-            loadStatus = LOAD_STATUS.LOAD_KO;
+            loadStatus = LOAD_STATUS.KO;
             return;
         }
 
@@ -66,7 +66,7 @@ public class FollowingLoader extends Loader{
             }
         }
         this.userNodeRepository.save(userNode);
-        loadStatus = LOAD_STATUS.LOAD_OK;
+        loadStatus = LOAD_STATUS.OK;
     }
 
     @Override
