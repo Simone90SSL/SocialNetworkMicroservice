@@ -1,16 +1,12 @@
-package sample.data.neo4j;
+package sample.data.mongodb;
 
-import org.neo4j.ogm.annotation.GraphId;
-import org.neo4j.ogm.annotation.Index;
-import org.neo4j.ogm.annotation.NodeEntity;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-@NodeEntity
-public class TweetNode {
+@Document
+public class TweetDocument {
 
-    @GraphId
-    Long id;
-
-    @Index(unique=true)
+    @Id
     private long twitterId;
 
     private String text;
@@ -18,11 +14,11 @@ public class TweetNode {
     private String geoLocation;
     private String lang;
 
-    public TweetNode(){
+    public TweetDocument(){
 
     }
 
-    public TweetNode(long twitterId, String text, String createdAt, String geoLocation, String lang) {
+    public TweetDocument(long twitterId, String text, String createdAt, String geoLocation, String lang) {
         this.twitterId = twitterId;
         this.text = text;
         this.createdAt = createdAt;
@@ -30,7 +26,7 @@ public class TweetNode {
         this.lang = lang;
     }
 
-    public TweetNode(long twitterId) {
+    public TweetDocument(long twitterId) {
         this(twitterId, "", "", "", "");
     }
 
@@ -76,9 +72,8 @@ public class TweetNode {
 
     @Override
     public String toString() {
-        return "TweetNode{" +
-                "id=" + id +
-                ", twitterId=" + twitterId +
+        return "TweetDocument{" +
+                "twitterId=" + twitterId +
                 ", text='" + text + '\'' +
                 ", createdAt='" + createdAt + '\'' +
                 ", geoLocation='" + geoLocation + '\'' +
@@ -89,7 +84,7 @@ public class TweetNode {
     @Override
     public boolean equals(Object o){
         if (o!=null && o.getClass().equals(this.getClass())){
-            TweetNode tn = (TweetNode)o;
+            TweetDocument tn = (TweetDocument)o;
             return tn.twitterId == this.twitterId;
         } else{
             return false;
@@ -101,11 +96,4 @@ public class TweetNode {
         return Long.hashCode(this.twitterId);
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
 }

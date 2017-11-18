@@ -10,9 +10,13 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 import org.springframework.data.neo4j.repository.config.EnableNeo4jRepositories;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import repository.mongodb.TweetDocumentRepository;
 import repository.neo4j.UserNodeRepository;
+import sample.data.mongodb.TweetDocument;
+import transaction.TransactionConsumer;
 
 import java.util.Arrays;
 
@@ -23,6 +27,7 @@ import java.util.Arrays;
 @ComponentScan({"data", "repository", "transaction"})
 @EntityScan({ "sample.data.neo4j", "BOOT-INF.classes.sample.data.neo4j" })
 @EnableNeo4jRepositories(basePackages = "repository.neo4j")
+@EnableMongoRepositories(basePackages = "repository.mongodb")
 @EnableTransactionManagement
 public class Application {
 
@@ -31,7 +36,6 @@ public class Application {
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);
     }
-
 
     @Bean
     public CommandLineRunner commandLineRunner(ApplicationContext ctx) {

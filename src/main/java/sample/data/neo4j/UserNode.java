@@ -5,6 +5,7 @@ import org.neo4j.ogm.annotation.Index;
 import org.neo4j.ogm.annotation.NodeEntity;
 import org.neo4j.ogm.annotation.Relationship;
 
+import java.util.HashSet;
 import java.util.Set;
 
 @NodeEntity
@@ -25,9 +26,6 @@ public class UserNode {
     @Relationship(type = "FOLLOW")
     public Set<UserNode> follows;
 
-    @Relationship(type = "TWEETS")
-    public Set<TweetNode> tweets;
-
     private UserNode() {
         // Empty constructor required as of Neo4j API 2.0.5
     };
@@ -38,6 +36,7 @@ public class UserNode {
         this.nickname = nickname;
         this.location = location;
         this.url = url;
+        this.follows = new HashSet<>();
     }
 
     public UserNode(long twitterId) {
@@ -67,10 +66,6 @@ public class UserNode {
 
     public Set<UserNode> getFollows() {
         return follows;
-    }
-
-    public Set<TweetNode> getTweets() {
-        return tweets;
     }
 
     public void setTwitterId(long twitterId) {
@@ -148,7 +143,4 @@ public class UserNode {
         this.follows = follows;
     }
 
-    public void setTweets(Set<TweetNode> tweets) {
-        this.tweets = tweets;
-    }
 }
