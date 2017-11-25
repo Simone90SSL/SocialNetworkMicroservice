@@ -1,8 +1,10 @@
 package loader;
 
 import cache.Cache;
+import org.neo4j.ogm.exception.CypherException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.ConcurrencyFailureException;
 import repository.neo4j.UserNodeRepository;
 import sample.data.neo4j.UserNode;
 import transaction.TransactionConsumer;
@@ -12,7 +14,7 @@ import java.util.Optional;
 
 public class FollowingLoader extends Loader{
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(TransactionConsumer.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(FollowingLoader.class);
     private static final int THRESHOLD = 10000;
 
 
@@ -26,13 +28,11 @@ public class FollowingLoader extends Loader{
         // Check number of following is less than threshold
         String[] inputFollowingArray = dataToLoad.split(",");
         if (inputFollowingArray.length > THRESHOLD){
-            loadStatus = LOAD_STATUS.KO;
-            return;
+            throw new RuntimeException("Too many following");
         }
 
         UserNode followedUserNode;
         long twitterId;
-        int addedFollowing = 0;     // Counter to save intermediate data
 
         for (String TwitterIdStr : inputFollowingArray) {
 
@@ -46,27 +46,19 @@ public class FollowingLoader extends Loader{
 
             followedUserNode = Optional
                     .ofNullable(Cache.getUser(twitterId))
-                    .orElse(userNodeRepository.findByTwitterId(twitterId));
-            if (followedUserNode == null) {
-                LOGGER.debug("'{}' not found --> CREATE", twitterId);
-                followedUserNode = new UserNode(twitterId);
-                this.userNodeRepository.save(followedUserNode);
-            }
-            Cache.addUser(followedUserNode);
+                    .orElse(Optional
+                            .ofNullable(userNodeRepository.findByTwitterId(twitterId))
+                            .orElseGet(() ->
+                            {
+                                UserNode x = new UserNode(Long.parseLong(TwitterIdStr));
+                                this.userNodeRepository.save(x);
+                                return x;
+                            })
+                    );
 
-            LOGGER.debug("'{}' has following '{}'", twitterId, followedUserNode);
-
-            userNode.follows.add(followedUserNode);
-
-            // Save intermediate data every 500 following
-            addedFollowing++;
-            if (addedFollowing % 500 == 0){
-                LOGGER.debug("Save intermediate result for user '{}'", userNode);
-                this.userNodeRepository.save(userNode);
-            }
+            LOGGER.debug("'{}' has following '{}'", userNode.getTwitterId(), followedUserNode);
+            userNodeRepository.addFollow(userNode.getTwitterId(), followedUserNode.getTwitterId());
         }
-        this.userNodeRepository.save(userNode);
-        loadStatus = LOAD_STATUS.OK;
     }
 
     @Override

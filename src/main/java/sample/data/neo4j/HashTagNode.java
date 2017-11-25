@@ -13,7 +13,7 @@ public class HashTagNode {
     @Index(unique=true)
     private String hashTag;
 
-    private HashTagNode(){ }
+    public HashTagNode(){ }
 
     public HashTagNode(String hashTag) {
         this.hashTag = hashTag;

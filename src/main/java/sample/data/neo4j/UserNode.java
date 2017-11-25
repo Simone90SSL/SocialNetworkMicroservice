@@ -28,7 +28,7 @@ public class UserNode {
     @Relationship(type = "TAGS")
     public List<TagsRelation> tagsRelations;
 
-    private UserNode() {
+    public UserNode() {
         // Empty constructor required as of Neo4j API 2.0.5
     };
 

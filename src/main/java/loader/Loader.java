@@ -51,6 +51,11 @@ public abstract class Loader {
         this.loadStatus = loadStatus;
     }
 
+
+    public LOAD_STATUS getLoadStatus() {
+        return loadStatus;
+    }
+
     public abstract void startLoad(String dataToLoad);
     public abstract void sendTransactionResult(TransactionProducer transactionProducer);
 }

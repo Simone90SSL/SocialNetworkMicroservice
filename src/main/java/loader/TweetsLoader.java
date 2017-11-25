@@ -4,6 +4,8 @@ import cache.Cache;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import repository.mongodb.TweetDocumentRepository;
 import repository.neo4j.HashTagNodeRepository;
 import repository.neo4j.UserNodeRepository;
@@ -11,6 +13,7 @@ import sample.data.mongodb.TweetDocument;
 import sample.data.neo4j.HashTagNode;
 import sample.data.neo4j.TagsRelation;
 import sample.data.neo4j.UserNode;
+import transaction.TransactionConsumer;
 import transaction.TransactionProducer;
 
 import java.util.ArrayList;
@@ -21,7 +24,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class TweetsLoader extends Loader{
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(TweetsLoader.class);
     private TweetDocumentRepository tweetDocumentRepository;
     private HashTagNodeRepository hashTagNodeRepository;
 
@@ -53,8 +56,10 @@ public class TweetsLoader extends Loader{
         for(int i=0; i<tweetArrayJson.length(); i++){
             tweetJsonObj = tweetArrayJson.getJSONObject(i);
             tweetTwitterId = Long.parseLong(getStringValueFromJsonOject(tweetJsonObj, "ID"));
+            LOGGER.debug("User '{}': Tweet '{}'", userNode.getTwitterId(), tweetTwitterId);
 
             if (tweetDocumentRepository.exists(tweetTwitterId)){
+                LOGGER.debug("User '{}': Tweet '{}' already loaded", userNode.getTwitterId(), tweetTwitterId);
                 continue;
             }
 
@@ -63,7 +68,7 @@ public class TweetsLoader extends Loader{
             geoLocation = getStringValueFromJsonOject(tweetJsonObj, "GEOLOCATION");
             lang = getStringValueFromJsonOject(tweetJsonObj, "LANG");
 
-            tweetDocument = new TweetDocument(tweetTwitterId, text, createdAt, geoLocation, lang);
+            tweetDocument = new TweetDocument(tweetTwitterId, userNode.getTwitterId(), text, createdAt, geoLocation, lang);
             tweetDocumentList.add(tweetDocument);
 
             Set<String> tags = getHashTagFromTweet(text);
@@ -93,7 +98,6 @@ public class TweetsLoader extends Loader{
         }
         tweetDocumentRepository.save(tweetDocumentList);
         userNodeRepository.save(userNode);
-        loadStatus = LOAD_STATUS.OK;
     }
 
     private static Set<String> getHashTagFromTweet(String text) {

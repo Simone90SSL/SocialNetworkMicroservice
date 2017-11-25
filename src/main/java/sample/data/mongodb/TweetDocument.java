@@ -9,6 +9,7 @@ public class TweetDocument {
     @Id
     private long twitterId;
 
+    private long creator;
     private String text;
     private String createdAt;
     private String geoLocation;
@@ -18,16 +19,17 @@ public class TweetDocument {
 
     }
 
-    public TweetDocument(long twitterId, String text, String createdAt, String geoLocation, String lang) {
+    public TweetDocument(long twitterId, long creator, String text, String createdAt, String geoLocation, String lang) {
         this.twitterId = twitterId;
+        this.creator = creator;
         this.text = text;
         this.createdAt = createdAt;
         this.geoLocation = geoLocation;
         this.lang = lang;
     }
 
-    public TweetDocument(long twitterId) {
-        this(twitterId, "", "", "", "");
+    public TweetDocument(long twitterId, long creator) {
+        this(twitterId, creator, "", "", "", "");
     }
 
     public long getTwitterId() {
@@ -70,10 +72,19 @@ public class TweetDocument {
         this.lang = lang;
     }
 
+    public long getCreator() {
+        return creator;
+    }
+
+    public void setCreator(long creator) {
+        this.creator = creator;
+    }
+
     @Override
     public String toString() {
         return "TweetDocument{" +
                 "twitterId=" + twitterId +
+                ", creator='" + creator + '\'' +
                 ", text='" + text + '\'' +
                 ", createdAt='" + createdAt + '\'' +
                 ", geoLocation='" + geoLocation + '\'' +

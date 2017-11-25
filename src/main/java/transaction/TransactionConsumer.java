@@ -14,6 +14,7 @@ import repository.neo4j.UserNodeRepository;
 import sample.data.neo4j.UserNode;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Optional;
 
@@ -32,6 +33,7 @@ public class TransactionConsumer {
     @Autowired
     private TransactionProducer transactionProducer;
 
+
     @KafkaListener(topics = "${kafka.topic.followingtransactiona}")
     public void receiveFollowing(String inputFollowingTransaction) {
         receive(inputFollowingTransaction, Loader.LOAD_TYPE.FOLLOWING);
@@ -47,37 +49,68 @@ public class TransactionConsumer {
         receive(inputTweetsTransaction, Loader.LOAD_TYPE.TWEETS);
     }
 
+
+    private static HashMap<Long, Thread> threadHashMap = new HashMap<>();
+    public static synchronized void addThread(Thread t){
+
+    }
+    private static synchronized void startThread(Runnable r){
+        while (threadHashMap.size() > 10){
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {}
+            long toRemove = 0;
+            for(Thread t: threadHashMap.values()){
+                if (!t.isAlive() || t.isInterrupted()){
+                    LOGGER.info("Removing thread '{}' {isAlive:'{}', isInterrupted:'{}'}", t.getId(), t.isAlive(), t.isInterrupted());
+                    toRemove = t.getId();
+                    break;
+                }
+            }
+            if (toRemove != 0){
+                threadHashMap.remove(toRemove);
+            }
+        }
+        Thread t = new Thread(r);
+        t.start();
+        threadHashMap.put(t.getId(), t);
+    }
+
     private void receive(String inputTransaction, Loader.LOAD_TYPE loadType){
         LOGGER.info("Received transaction of type '{}'", loadType);
         // Just return if the input is not acceptable
         if (inputTransaction==null || inputTransaction.isEmpty()){
             return;
         }
+        startThread(() -> {
+            long startTime = System.nanoTime();
+            UserNode userNode = getUserNodeFromTransactionInput(userNodeRepository, inputTransaction);
+            String dataToLoad = getDataFromTransactionInput(inputTransaction);
 
-        UserNode userNode = getUserNodeFromTransactionInput(inputTransaction);
-        String dataToLoad = getDataFromTransactionInput(inputTransaction);
-
-        Loader loader = Loader.getNewInstance(loadType, tweetDocumentRepository, hashTagNodeRepository, userNodeRepository, userNode);
-        try {
-            LOGGER.info("Start Loading");
-            loader.startLoad(dataToLoad);
-
-        } catch (JSONException je) {
-            LOGGER.error("JSON EXCEPTION DURING '{}' LOADING", loadType);
-            LOGGER.error(je.getMessage(), je);
-            je.printStackTrace();
-
-        } catch (Exception e){
-            LOGGER.error("EXCEPTION DURING '{}' LOADING", loadType);
-            LOGGER.error(e.getMessage(), e);
-            e.printStackTrace();
-            loader.setLoadStatus(Loader.LOAD_STATUS.KO);
-        }
-        LOGGER.info("Send transaction result");
-        loader.sendTransactionResult(transactionProducer);
+            Loader loader = Loader.getNewInstance(loadType, tweetDocumentRepository, hashTagNodeRepository, userNodeRepository, userNode);
+            try {
+                LOGGER.info("Start Loading '{}' of '{}'", loadType, userNode.getTwitterId());
+                loader.startLoad(dataToLoad);
+                loader.setLoadStatus(Loader.LOAD_STATUS.OK);
+            } catch (JSONException je) {
+                LOGGER.error("JSON EXCEPTION DURING '{}' LOADING of '{}'", loadType, userNode.getTwitterId());
+                LOGGER.error(je.getMessage(), je);
+                je.printStackTrace();
+                loader.setLoadStatus(Loader.LOAD_STATUS.KO);
+            } catch (Exception e){
+                LOGGER.error("EXCEPTION DURING '{}' LOADING of '{}'", loadType, userNode.getTwitterId());
+                LOGGER.error(e.getMessage(), e);
+                e.printStackTrace();
+                loader.setLoadStatus(Loader.LOAD_STATUS.KO);
+            }
+            loader.sendTransactionResult(transactionProducer);
+            long runTime = System.nanoTime() - startTime;
+            LOGGER.info("Loading '{}' of '{}' finished in '{}' secs", loadType, userNode.getTwitterId(), (double)runTime / 1000000000.0);
+        });
     }
 
-    private UserNode getUserNodeFromTransactionInput(String dataTransactionInput){
+    private static synchronized UserNode getUserNodeFromTransactionInput(
+            UserNodeRepository userNodeRepository, String dataTransactionInput){
 
         // Read UserNode in input
         long twitterId = Long.parseLong(dataTransactionInput.split(":")[0]);

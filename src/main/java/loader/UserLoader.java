@@ -41,7 +41,6 @@ public class UserLoader extends Loader {
         }
 
         userNodeRepository.save(userNode);
-        loadStatus = LOAD_STATUS.OK;
     }
 
     @Override

@@ -35,7 +35,7 @@ public class TransactionProducer {
     }
 
     private void send(String transactionType, long twitterId, String transactionStatus){
-        LOGGER.info("Sending '{}' transaction resposnse for user '{}' with status '{}' ",
+        LOGGER.info("Sending '{}' transaction response for user '{}' with status '{}' ",
                 transactionType, twitterId, transactionStatus);
         kafkaTemplate.send(transactionType, twitterId+","+transactionStatus);
     }
