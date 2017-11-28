@@ -23,6 +23,7 @@ import sample.data.neo4j.FollowingData;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -60,6 +61,40 @@ public class Application {
             Arrays.sort(beanNames);
             for (String beanName : beanNames) {
                 System.out.println(beanName);
+            }
+
+            /*
+            String fileName = "/Users/simonecaldaro/LAUREA_MAGISTRALE_IN_INGEGNERIA_INFORMATICA/Tesi/SNBRS/tmp.txt";
+            //read file into stream, try-with-resources
+            try (Stream<String> stream = Files.lines(Paths.get(fileName))) {
+
+                stream.forEach(line -> {
+                    long a = Long.parseLong(line.split(",")[0]);
+                    long b = Long.parseLong(line.split(",")[1]);
+                    userNodeRepository.deleteFollow(a, b);
+                    userNodeRepository.addFollow(a, b);
+                    ;});
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            */
+
+            String fileName = "/Users/simonecaldaro/LAUREA_MAGISTRALE_IN_INGEGNERIA_INFORMATICA/Tesi/SNBRS/tmp2.txt";
+            //read file into stream, try-with-resources
+            try (Stream<String> stream = Files.lines(Paths.get(fileName))) {
+
+                stream.forEach(line -> {
+                    System.out.println(line);
+                    long a = Long.parseLong(line.split(",")[0]);
+                    String b = line.split(",")[1];
+                    int c = Integer.parseInt(line.split(",")[2]);
+                    userNodeRepository.deleteTags(a, b);
+                    userNodeRepository.addTags(a, b, c);
+                    ;});
+
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         };
     }

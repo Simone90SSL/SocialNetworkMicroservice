@@ -19,7 +19,7 @@ import java.io.OutputStream;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 
 @RestController
-@RequestMapping("/recommender")
+@RequestMapping("/stream")
 public class RecommenderController {
 
     private final static int PAGE_SIZE = 100;

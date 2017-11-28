@@ -22,6 +22,15 @@ public interface UserNodeRepository extends GraphRepository<UserNode> {
     @Query("MATCH (a:UserNode{twitterId:{0}}) WITH a MATCH (b:UserNode{twitterId:{1}}) CREATE (a)-[r:FOLLOW]->(b)")
     void addFollow(long twitterId1, long twitterId2);
 
+    @Query("MATCH (a:UserNode{twitterId:{0}})-[r:FOLLOW]->(b:UserNode{twitterId:{1}}) DELETE r")
+    void deleteFollow(long twitterId1, long twitterId2);
+
+    @Query("MATCH (a:UserNode{twitterId:{0}}) WITH a MATCH (b:HashTagNode{hashTag:{1}}) CREATE (a)-[r:TAGS{count:{2}}]->(b)")
+    void addTags(long twitterId1, String hashTag, int count);
+
+    @Query("MATCH (a:UserNode{twitterId:{0}})-[r:TAGS]->(b:HashTagNode{hashTag:{1}}) DELETE r")
+    void deleteTags(long twitterId1, String hashTag);
+
     @Query("MATCH (a:UserNode) return a.twitterId")
     Page<Long> findAllTwitterId(Pageable pageable);
 

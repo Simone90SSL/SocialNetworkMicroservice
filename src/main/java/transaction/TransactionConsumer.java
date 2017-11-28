@@ -55,9 +55,12 @@ public class TransactionConsumer {
 
     }
     private static synchronized void startThread(Runnable r){
-        while (threadHashMap.size() > 10){
+        LOGGER.info("trying to start a new thread");
+        int i = 1;
+        while (threadHashMap.size() > 20){
+            LOGGER.info("thread pool is full -> wait '{}' millisecond", 10000);
             try {
-                Thread.sleep(1000);
+                Thread.sleep(10000);
             } catch (InterruptedException e) {}
             long toRemove = 0;
             for(Thread t: threadHashMap.values()){
