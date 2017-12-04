@@ -13,10 +13,8 @@ import transaction.TransactionProducer;
 import java.util.Optional;
 
 public class FollowingLoader extends Loader{
-
     private static final Logger LOGGER = LoggerFactory.getLogger(FollowingLoader.class);
     private static final int THRESHOLD = 10000;
-
 
     public FollowingLoader(UserNodeRepository userNodeRepository, UserNode userNode) {
         super(userNodeRepository, userNode);
@@ -24,41 +22,27 @@ public class FollowingLoader extends Loader{
 
     @Override
     public void startLoad(String dataToLoad) {
-
         // Check number of following is less than threshold
         String[] inputFollowingArray = dataToLoad.split(",");
         if (inputFollowingArray.length > THRESHOLD){
             throw new RuntimeException("Too many following");
         }
-
         UserNode followedUserNode;
         long twitterId;
 
         for (String TwitterIdStr : inputFollowingArray) {
-
             twitterId = Long.parseLong(TwitterIdStr);
-
             // This is one of the following of the current node
             if (userNode.follows.contains(new UserNode(twitterId))) {
                 LOGGER.debug("'{}' already follow '{}' --> SKIP IT", userNode, twitterId);
                 continue;
             }
-
-            followedUserNode = Optional
-                    .ofNullable(Cache.getUser(twitterId))
-                    .orElse(Optional
-                            .ofNullable(userNodeRepository.findByTwitterId(twitterId))
-                            .orElseGet(() ->
-                            {
-                                UserNode x = new UserNode(Long.parseLong(TwitterIdStr));
-                                this.userNodeRepository.save(x);
-                                return x;
-                            })
-                    );
-
-            LOGGER.debug("'{}' has following '{}'", userNode.getTwitterId(), followedUserNode);
-            userNodeRepository.addFollow(userNode.getTwitterId(), followedUserNode.getTwitterId());
+            followedUserNode = userNodeRepository.getOrCreate(twitterId);
+            LOGGER.debug("'{}' has following '{}'", userNode.getTwitterId(), followedUserNode.getTwitterId());
+            userNode.follows.add(followedUserNode);
+            //userNodeRepository.addFollow(userNode.getTwitterId(), followedUserNode.getTwitterId());
         }
+        userNodeRepository.save(userNode);
     }
 
     @Override
@@ -66,3 +50,4 @@ public class FollowingLoader extends Loader{
         transactionProducer.sendFollowing(userNode, loadStatus);
     }
 }
+

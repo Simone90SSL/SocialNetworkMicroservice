@@ -28,6 +28,9 @@ public class UserNode {
     @Relationship(type = "TAGS")
     public List<TagsRelation> tagsRelations;
 
+    @Relationship(type = "MAY_LIKE")
+    public List<HashTagNode> recommendations;
+
     public UserNode() {
         // Empty constructor required as of Neo4j API 2.0.5
     };
@@ -41,6 +44,7 @@ public class UserNode {
 
         this.follows = new HashSet<>();
         this.tagsRelations = new ArrayList<>();
+        this.recommendations = new ArrayList<>();
     }
 
     public UserNode(long twitterId) {
@@ -92,21 +96,6 @@ public class UserNode {
         this.url = url;
     }
 
-
-    /*public void follow(UserNode userNode) {
-        if (follows == null) {
-            follows = new HashSet<>();
-        }
-        follows.add(userNode);
-    }*/
-
-    /*public void tweets(TweetNode tweetNode) {
-        if (tweets == null) {
-            tweets = new HashSet<>();
-        }
-        tweets.add(tweetNode);
-    }*/
-
     @Override
     public String toString() {
         return "UserNode{" +
@@ -147,4 +136,11 @@ public class UserNode {
         this.follows = follows;
     }
 
+    public void addRecommendation(HashTagNode hashTagNode) {
+        if (recommendations == null)
+            recommendations = new ArrayList<>();
+
+        if (!recommendations.contains(hashTagNode))
+            recommendations.add(hashTagNode);
+    }
 }

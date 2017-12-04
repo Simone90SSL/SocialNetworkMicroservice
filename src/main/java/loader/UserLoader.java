@@ -9,9 +9,7 @@ import sample.data.neo4j.UserNode;
 import transaction.TransactionProducer;
 
 public class UserLoader extends Loader {
-
     private static final Logger LOGGER = LoggerFactory.getLogger(UserLoader.class);
-
 
     public UserLoader(UserNodeRepository userNodeRepository, UserNode userNode) {
         super(userNodeRepository, userNode);
@@ -19,9 +17,7 @@ public class UserLoader extends Loader {
 
     @Override
     public void startLoad(String dataToLoad) {
-
         final JSONObject userJsonObj = new JSONObject(dataToLoad);
-
         String url = getValueOrDefault(userJsonObj, "URL");
         String location = getValueOrDefault(userJsonObj, "LOCATION");
         String screenname = getValueOrDefault(userJsonObj, "SCREENNAME");
@@ -39,7 +35,6 @@ public class UserLoader extends Loader {
         if (!name.isEmpty()) {
             userNode.setName(name);
         }
-
         userNodeRepository.save(userNode);
     }
 
@@ -56,3 +51,4 @@ public class UserLoader extends Loader {
         }
     }
 }
+

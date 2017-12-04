@@ -39,19 +39,17 @@ public class TweetsLoader extends Loader{
 
     @Override
     public void startLoad(String dataToLoad) {
-
         if (dataToLoad.isEmpty() || "[]".equals(dataToLoad)){
             // Empty array
             loadStatus = LOAD_STATUS.OK;
             return;
         }
-
         ArrayList<TweetDocument> tweetDocumentList = new ArrayList<>();
         JSONArray tweetArrayJson = new JSONArray(dataToLoad);
         JSONObject tweetJsonObj;
 
         TweetDocument tweetDocument;
-        String text, createdAt, geoLocation, lang;
+        String text;
         long tweetTwitterId;
         for(int i=0; i<tweetArrayJson.length(); i++){
             tweetJsonObj = tweetArrayJson.getJSONObject(i);
@@ -62,32 +60,22 @@ public class TweetsLoader extends Loader{
                 LOGGER.debug("User '{}': Tweet '{}' already loaded", userNode.getTwitterId(), tweetTwitterId);
                 continue;
             }
-
             text = getStringValueFromJsonOject(tweetJsonObj, "TEXT");
-            createdAt = getStringValueFromJsonOject(tweetJsonObj, "CREATEDAT");
-            geoLocation = getStringValueFromJsonOject(tweetJsonObj, "GEOLOCATION");
-            lang = getStringValueFromJsonOject(tweetJsonObj, "LANG");
 
-            tweetDocument = new TweetDocument(tweetTwitterId, userNode.getTwitterId(), text, createdAt, geoLocation, lang);
+            tweetDocument = new TweetDocument(
+                    tweetTwitterId,
+                    userNode.getTwitterId(),
+                    text,
+                    getStringValueFromJsonOject(tweetJsonObj, "CREATEDAT"),
+                    getStringValueFromJsonOject(tweetJsonObj, "GEOLOCATION"),
+                    getStringValueFromJsonOject(tweetJsonObj, "LANG"));
             tweetDocumentList.add(tweetDocument);
 
             Set<String> tags = getHashTagFromTweet(text);
             int tagIndexOf;
             HashTagNode hashTagNode;
             for (String tag: tags){
-                hashTagNode =
-                        Optional
-                        .ofNullable(Cache.getHashTag(tag))
-                        .orElse(
-                                Optional
-                                        .ofNullable(hashTagNodeRepository.findByHashTag(tag))
-                                        .orElseGet(
-                                                () -> {
-                                                    HashTagNode h = new HashTagNode(tag);
-                                                    hashTagNodeRepository.save(h);
-                                                    return h;
-                                                })
-                        );
+                hashTagNode = hashTagNodeRepository.getOrCreate(tag);
                 tagIndexOf = userNode.tagsRelations.indexOf(new TagsRelation(1, userNode, hashTagNode));
                 if (tagIndexOf == -1)
                     userNode.tagsRelations.add(new TagsRelation(1, userNode, hashTagNode));
@@ -100,6 +88,11 @@ public class TweetsLoader extends Loader{
         userNodeRepository.save(userNode);
     }
 
+    @Override
+    public void sendTransactionResult(TransactionProducer transactionProducer) {
+        transactionProducer.sendTweets(userNode, loadStatus);
+    }
+
     private static Set<String> getHashTagFromTweet(String text) {
         Set<String> tags = new HashSet<>();
         Matcher matcher = Pattern.compile("#(\\w+)").matcher(text);
@@ -107,11 +100,6 @@ public class TweetsLoader extends Loader{
             tags.add(matcher.group(1));
         }
         return tags;
-    }
-
-    @Override
-    public void sendTransactionResult(TransactionProducer transactionProducer) {
-        transactionProducer.sendTweets(userNode, loadStatus);
     }
 
     private String getStringValueFromJsonOject(JSONObject jsonObj, String propertyName){

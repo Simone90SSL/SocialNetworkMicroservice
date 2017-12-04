@@ -11,6 +11,14 @@ public class UserTagData {
 
     public UserTagData(){}
 
+    public String getTag() {
+        return tag;
+    }
+
+    public int getCount() {
+        return count;
+    }
+
     @Override
     public String toString() {
         return user + "," + tag + "," + count;

@@ -40,3 +40,4 @@ public class TransactionProducer {
         kafkaTemplate.send(transactionType, twitterId+","+transactionStatus);
     }
 }
+

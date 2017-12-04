@@ -3,23 +3,16 @@ package controller;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import repository.neo4j.HashTagNodeRepository;
 import repository.neo4j.UserNodeRepository;
-import sample.data.neo4j.FollowingData;
 import sample.data.neo4j.UserNode;
-import sample.data.neo4j.UserTagData;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Optional;
 
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 
@@ -31,7 +24,6 @@ public class UserController {
 
     @Autowired
     private UserNodeRepository userNodeRepository;
-
     @Autowired
     private HashTagNodeRepository hashTagNodeRepository;
 

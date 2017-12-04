@@ -20,9 +20,9 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
 
 @RestController
 @RequestMapping("/stream")
-public class RecommenderController {
+public class StreamController {
 
-    private final static int PAGE_SIZE = 100;
+    private final static int PAGE_SIZE = 60000;
 
     @Autowired
     private UserNodeRepository userNodeRepository;

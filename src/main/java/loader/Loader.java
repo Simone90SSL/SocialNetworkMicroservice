@@ -16,7 +16,6 @@ public abstract class Loader {
     public enum LOAD_STATUS {OK, KO};
     public enum LOAD_TYPE {FOLLOWING, USER, TWEETS};
 
-
     protected UserNodeRepository userNodeRepository;
 
     protected LOAD_STATUS loadStatus = null;
@@ -25,7 +24,6 @@ public abstract class Loader {
     public Loader(UserNodeRepository userNodeRepository, UserNode userNode){
         this.userNodeRepository = userNodeRepository;
         this.userNode = userNode;
-
     }
 
     public static Loader getNewInstance(LOAD_TYPE loadType,
@@ -33,6 +31,7 @@ public abstract class Loader {
                                         HashTagNodeRepository hashTagNodeRepository,
                                         UserNodeRepository userNodeRepository,
                                         UserNode userNode){
+        LOGGER.debug("Instantiating a '{}' loader", loadType);
         if (loadType == LOAD_TYPE.FOLLOWING){
             return new FollowingLoader(userNodeRepository, userNode);
 
@@ -51,7 +50,6 @@ public abstract class Loader {
         this.loadStatus = loadStatus;
     }
 
-
     public LOAD_STATUS getLoadStatus() {
         return loadStatus;
     }
@@ -59,3 +57,5 @@ public abstract class Loader {
     public abstract void startLoad(String dataToLoad);
     public abstract void sendTransactionResult(TransactionProducer transactionProducer);
 }
+
+
