@@ -11,6 +11,9 @@ public class UserTagData {
 
     public UserTagData(){}
 
+    public long getUser() {
+        return user;
+    }
     public String getTag() {
         return tag;
     }

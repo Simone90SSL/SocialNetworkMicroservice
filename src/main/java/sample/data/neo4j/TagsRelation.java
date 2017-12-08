@@ -55,7 +55,10 @@ public class TagsRelation {
     }
 
     public void incrementCount(){
-        this.count++;
+        this.incrementCount(1);
+    }
+    public void incrementCount(int increment){
+        this.count += increment;
     }
 
     @Override

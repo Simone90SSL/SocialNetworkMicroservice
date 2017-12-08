@@ -136,6 +136,18 @@ public class UserNode {
         this.follows = follows;
     }
 
+    public void addTag(HashTagNode hashTagNode, int count){
+        if (tagsRelations == null)
+            tagsRelations = new ArrayList<>();
+
+        int i = tagsRelations.indexOf(new TagsRelation(count, this, hashTagNode));
+        if (i == -1){
+            tagsRelations.add(new TagsRelation(count, this, hashTagNode));
+        } else{
+            tagsRelations.get(i).incrementCount(count);
+        }
+    }
+
     public void addRecommendation(HashTagNode hashTagNode) {
         if (recommendations == null)
             recommendations = new ArrayList<>();

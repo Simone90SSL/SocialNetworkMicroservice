@@ -65,7 +65,8 @@ public class Application {
                 System.out.println(beanName);
             }
             SocialGraphUtil u = new SocialGraphUtil(userNodeRepository, hashTagNodeRepository);
-           // u.getReplicatedUserNode();
+            //u.getReplicatedUserNode();
+            //u.getReplicatedHashTagNode();
         };
     }
 }

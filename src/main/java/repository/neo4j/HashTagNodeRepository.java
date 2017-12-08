@@ -6,7 +6,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.neo4j.annotation.Query;
 import org.springframework.data.neo4j.repository.GraphRepository;
 import sample.data.neo4j.HashTagNode;
+import sample.data.neo4j.UserTagData;
 
+import java.util.List;
 import java.util.Optional;
 
 
@@ -16,6 +18,13 @@ public interface HashTagNodeRepository extends GraphRepository<HashTagNode> {
 
     @Query("MATCH (a:HashTagNode) return a.hashTag")
     Page<String> findAllHashTags(Pageable pageable);
+
+    @Query("MATCH (u:UserNode)-[t:TAGS]->(v:HashTagNode{hashTag:{0}}) " +
+            "return u.twitterId as user, v.hashTag as tag, t.count as count")
+    List<UserTagData> findUserTag(String hashTag);
+
+    @Query("MATCH (n:HashTagNode{hashTag:{0}}) OPTIONAL MATCH (n)-[r]-() DELETE r,n")
+    void delete(String hashTag);
 
     default HashTagNode getOrCreate(String hashTag) {
         return Optional

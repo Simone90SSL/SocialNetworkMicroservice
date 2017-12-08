@@ -135,8 +135,74 @@ public class SocialGraphUtil {
         merge.setNickname(!a.getNickname().isEmpty()?a.getNickname():b.getNickname());
         merge.setUrl(!a.getUrl().isEmpty()?a.getUrl():b.getUrl());
 
-
-
         return merge;
+    }
+
+    public void getReplicatedHashTagNode(){
+        String fileName = "/Users/simonecaldaro/LAUREA_MAGISTRALE_IN_INGEGNERIA_INFORMATICA/Tesi/SNBRS/tmp_hadhtagnode.csv";
+        //read file into stream, try-with-resources
+        try (Stream<String> stream = Files.lines(Paths.get(fileName)).parallel()) {
+            stream.forEach(line -> {
+                try {
+                    LOGGER.info("Elaborating "+line);
+                    long ida = Long.parseLong(line.split(",")[0]);
+                    long idb = Long.parseLong(line.split(",")[1]);
+
+                    HashTagNode a = hashTagNodeRepository.findOne(ida);
+                    HashTagNode b = hashTagNodeRepository.findOne(idb);
+
+                    if (a==null && b==null)
+                        return;
+
+                    HashTagNode c = new HashTagNode(a!=null?a.getHashTag():b.getHashTag());
+
+                    // Store data before remove from db
+                    List<UserTagData> userTagDataList = hashTagNodeRepository.findUserTag(c.getHashTag());
+                    Map<Long, Integer> userSet = new HashMap<Long, Integer>();
+                    for (UserTagData userTagData: userTagDataList){
+                        if (userSet.containsKey(userTagData.getUser())){
+                            int incCount = userSet.get(userTagData.getUser())+userTagData.getCount();
+                            userSet.put(userTagData.getUser(), incCount);
+                        } else{
+                            userSet.put(userTagData.getUser(), userTagData.getCount());
+                        }
+                    }
+
+                    // Remove Old Data
+                    LOGGER.info("removing old data" + c.getHashTag());
+                    try {
+                        hashTagNodeRepository.delete(c.getHashTag());
+                    } catch(CypherException ce){
+                    }
+
+                    // Restore Data
+                    LOGGER.info("saving node " + c.getHashTag());
+                    hashTagNodeRepository.save(c);
+
+                    LOGGER.info("Adding '{}' tags to '{}' ", userSet.size(), c.getHashTag());
+                    UserNode userNode;
+                    for (Long twitterId : userSet.keySet()) {
+                        userNode = userNodeRepository.getOrCreate(twitterId);
+                        userNode.addTag(c, userSet.get(twitterId));
+                        int retry = 5;
+                        do{
+                            try {
+                                userNodeRepository.save(userNode);
+                                break;
+                            } catch(ConcurrencyFailureException ce){
+                                retry --;
+                                Thread.sleep(1000);
+                            }
+                        } while(retry>0);
+                    }
+                } catch (Exception e){
+                    e.printStackTrace();
+                    System.exit(-1);
+                }
+
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

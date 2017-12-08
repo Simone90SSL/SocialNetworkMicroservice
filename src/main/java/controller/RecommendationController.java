@@ -11,6 +11,7 @@ import repository.neo4j.UserNodeRepository;
 import sample.data.neo4j.HashTagNode;
 import sample.data.neo4j.UserNode;
 
+import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
 @RestController
@@ -41,6 +42,25 @@ public class RecommendationController {
             }
             userNodeRepository.save(userNode);
             return ResponseEntity.status(HttpStatus.OK).build();
+
+        } catch (NumberFormatException nfe){
+            LOGGER.info("UserId is not a number '{}'", userId);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("User id must be a long number");
+        }
+    }
+
+    @RequestMapping(value = "user/{userId}", method = GET)
+    ResponseEntity<String> get(@PathVariable String userId) {
+        LOGGER.info("Recommending items to '{}'", userId);
+        try {
+            UserNode userNode = userNodeRepository.findByTwitterId(Long.parseLong(userId));
+            if (userNode == null){
+                LOGGER.info("User not found '{}'", userId);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User Not Found");
+            }
+            StringBuilder stringBuilder = new StringBuilder();
+            userNode.recommendations.forEach(stringBuilder::append);
+            return ResponseEntity.status(HttpStatus.OK).body(stringBuilder.toString());
 
         } catch (NumberFormatException nfe){
             LOGGER.info("UserId is not a number '{}'", userId);
